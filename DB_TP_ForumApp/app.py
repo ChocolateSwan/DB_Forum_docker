@@ -29,7 +29,7 @@ async def init(app, app_loop):
     # end route part
 
     handler = app.make_handler()
-
+    # postgresuser postgres forumtp
     app['pool'] = await asyncpg.create_pool(user='postgresuser', password='postgres',
                                             database='forumtp', host='127.0.0.1', min_size=1, max_size=10)
     print("Connection pool created")

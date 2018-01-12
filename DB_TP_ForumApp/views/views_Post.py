@@ -88,7 +88,7 @@ class PostCreate (View):
                         LEFT JOIN "post" post_parent on t.parent_id = post_parent.id AND post_parent.thread_id = $3
                         ORDER BY ordinality
                     )    
-                    RETURNING id, author_id, author, message, parent, created, forum, thread_id as thread
+                    RETURNING id, author_id, author, message, parent, to_char (created::timestamp at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created, forum, thread_id as thread
                 ''', forum_id, forum_slug, thread_id, parents, authors, messages, posts_count)
                 result = list(map(dict, result))
                 after_insert_count = 0
@@ -98,8 +98,8 @@ class PostCreate (View):
                     if row.get('parent') is None:
                         await transact.rollback()
                         return json_response({'message': 'parent thread not found'}, status=409)
-                    dt = row.get('created')
-                    row['created'] = dt.replace(tzinfo=dateutil.tz.tzlocal()).isoformat()
+                    #dt = row.get('created')
+                    #row['created'] = dt.replace(tzinfo=dateutil.tz.tzlocal()).isoformat()
                     authors.append(row['author_id'])
                     row.pop('author_id')
 
@@ -107,14 +107,16 @@ class PostCreate (View):
                     await transact.rollback()
                     return json_response({'message': 'user not found'}, status=404)
 
+                
+
+                await transact.commit()
+
                 await update_users_per_forum(connection, forum_id, authors)
 
                 await connection.execute('''
                     UPDATE "forum"
                     SET posts = posts + $1
                     WHERE id = $2''', posts_count, forum_id)
-
-                await transact.commit()
 
                 return json_response(result, status=201)
             except:
@@ -307,7 +309,7 @@ class OnePost (View):
                 SELECT
                     {0}
                     p.author as post_author, 
-                    p.created AS post_created,
+                    to_char (p.created::timestamp at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS post_created,
                     p.forum AS post_forum, 
                     p.id AS post_id, 
                     p.message AS post_message, 
@@ -326,7 +328,7 @@ class OnePost (View):
             response = {
                 "post": {
                     "author": result['post_author'],
-                    "created": result['post_created'].replace(tzinfo=dateutil.tz.tzlocal()).isoformat(),
+                    "created": result['post_created'],
                     "forum": result['post_forum'],
                     "id": result['post_id'],
                     "isEdited": result['post_isedited'],

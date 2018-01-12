@@ -40,7 +40,6 @@ class ForumCreate (View):
                     ''' select posts, slug, threads, title, "user" from forum where slug = $1''',
                     data.get('slug',' ')
                 )
-                print(result_forum)
                 return json_response(dict(result_forum),
                                      status=409)
 

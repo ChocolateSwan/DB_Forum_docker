@@ -101,7 +101,6 @@ class ThreadDetails(View):
             async with connection.transaction():
                 slug_or_id = self.request.match_info['slug_or_id']
                 data = await  self.request.json()
-                print(data)
                 sql_str = '''
                 UPDATE thread SET message = {}, title = {} WHERE {}
                 RETURNING author, created, forum, id, message, slug, title, votes;
@@ -111,7 +110,6 @@ class ThreadDetails(View):
                     'id = {}'.format(slug_or_id) if slug_or_id.isdigit()
                     else "slug = '{}'".format(slug_or_id)
                 )
-                print(sql_str)
                 result_thread = await connection.fetchrow(sql_str)
                 status = 404
                 if result_thread:
